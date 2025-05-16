@@ -4,11 +4,34 @@ const JWT = require('jsonwebtoken');
 
 dotenv.config();
 
-exports.getUsers = (request, response) => {
-    response.status(200).json({
-        status: true,
-        message: "Hello World!"
-    });
+exports.getUsers = async (request, response) => {
+    try {
+        // Get page and limit from query params or set default
+        const page = parseInt(request.query.page) || 1;
+        const limit = parseInt(request.query.limit) || 25;
+        const skip = (page - 1) * limit;
+
+        users = await User.find()
+            .select('-password -__v')
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 });
+
+        const total_users = await User.countDocuments();
+
+        response.status(200).json({
+            page,
+            limit,
+            total_users,
+            total_pages: Math.ceil(total_users / users),
+            users
+        });
+    } catch (error) {
+        response.status(500).json({
+            status: false,
+            message: error.message
+        });
+    }
 }
 
 exports.userSignup = async (request, response) => {
@@ -44,7 +67,7 @@ exports.userSignup = async (request, response) => {
                 id: newUser._id,
                 first_name: newUser.first_name,
                 last_name: newUser.last_name,
-                fullName: newUser.fullName,
+                full_name: newUser.full_name,
                 phone_number: newUser.phone_number,
                 email: newUser.email,
                 date_joined: newUser.date_joined
@@ -55,6 +78,6 @@ exports.userSignup = async (request, response) => {
         response.status(500).json({
             status: false,
             message: error.message
-        })
+        });
     }
 }
